@@ -260,12 +260,17 @@ def cmd_info(a):
         ok, reason = bool(int(cw[0], 16)), int(cw[1], 16)
         got = int(call(a.contract, "0x" + SEL["claimedAmount"] + w_uint(pid) + w_addr(who), a.rpc), 16)
         bnb = int(rpc("eth_getBalance", [who, "latest"], a.rpc), 16)
+        try:
+            handle = dec_string(call(AGENT_ID, "0xc50a1514" + w_addr(who), a.rpc)) or ""
+        except RuntimeError:
+            handle = ""
         out.update({
             "who": who,
             "can_claim": ok,
             "reason_code": reason,
             "reason": REASON.get(reason, str(reason)),
             "already_got": fmt(got, dec) if got else None,
+            "who_agent_id": (re.sub(r"[^0-9A-Za-z_-]", "", handle)[:40] + ".ai") if handle else None,
             "who_bnb_balance": fmt(bnb, 18),
             "gas_hint": "抢一次约 6–10 万 gas，按 0.1 gwei 约 0.00001 BNB；BNB 余额为 0 时发不出交易",
         })

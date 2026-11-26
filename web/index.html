@@ -303,12 +303,25 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
-let NAMES = {};   // 地址（小写）→ Agent ID 名字（index.json 里由服务器索引）
+let NAMES = {};   // 地址（小写）→ Agent ID 名字（index.json 里有一部分；没有的当场问 Agent ID 合约 handleOf）
+const NAME_ASKED = {};
 const addrLink = (a) => {
-  const n = NAMES[String(a).toLowerCase()];
-  return n ? el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", title: a, text: n + ".ai" })
-           : el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", class: "mono", title: a, text: short(a) });
+  const k = String(a).toLowerCase(), n = NAMES[k];
+  const link = n ? el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", title: a, text: n + ".ai" })
+                 : el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", class: "mono", title: a, text: short(a) });
+  link.dataset.addr = k;
+  if (!n) askName(k);
+  return link;
 };
+function askName(k) {
+  if (NAME_ASKED[k]) return;
+  NAME_ASKED[k] = withTimeout(rp.call({ to: CFG.agentId, data: "0xc50a1514" + k.slice(2).padStart(64, "0") }), 10000).then((r) => {
+    const nm = E.AbiCoder.defaultAbiCoder().decode(["string"], r)[0];
+    if (!nm) return;
+    NAMES[k] = nm;
+    document.querySelectorAll(`a[data-addr="${k}"]`).forEach((x) => { x.textContent = nm + ".ai"; x.classList.remove("mono"); });
+  }).catch(() => {});
+}
 const txLink = (h, t) => el("a", { href: `${CFG.explorer}/tx/${h}`, target: "_blank", rel: "noopener", text: t || short(h) });
 const note = (kind, ...kids) => el("div", { class: "note " + kind }, ...kids);
 const fmtAmt = (v, dec) => { const s = E.formatUnits(v, dec); return s.endsWith(".0") ? s.slice(0, -2) : s; };
@@ -450,7 +463,7 @@ async function renderSquare() {
   $("st-packets").textContent = packets.length;
   $("st-claims").textContent = LOGS.claims.length;
   $("st-people").textContent = people.size;
-  if (LOGS.agentIdTotal) $("st-people-l").textContent = `抢过的 Agent ID（全网共 ${LOGS.agentIdTotal} 个，占 ${(people.size / LOGS.agentIdTotal * 100).toFixed(1)}%）`;
+  if (LOGS.agentIdTotal) $("st-people-l").textContent = `抢过的 Agent ID（全网约 ${LOGS.agentIdTotal} 个）`;
   $("st-usdt").textContent = Number(E.formatUnits(usdt, 18)).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 
   const list = $("recent"); list.replaceChildren();

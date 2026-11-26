@@ -141,8 +141,22 @@ def run_once(cfg, state_path, out_path, rpc):
                 continue
         st["names_last"] = head
 
-    write_json(state_path, st)
     involved = {c["claimer"] for c in st["claims"]} | {p["creator"] for p in st["created"].values()}
+    # 名字目录里没有的（例如管理员代注册、日志缺失），直接问 Agent ID 合约 handleOf(address)；查不到的 1 小时后再试
+    chk = st.setdefault("handle_checked", {})
+    for a in sorted(involved):
+        if a in st["names"] or time.time() - chk.get(a, 0) < 3600:
+            continue
+        try:
+            r = rpc("eth_call", [{"to": cfg["agentId"], "data": "0xc50a1514" + a[2:].lower().rjust(64, "0")}, "latest"])
+            nm = dec_string(r, 0) if len(r) > 2 + 128 else ""
+        except Exception:  # noqa: BLE001
+            continue
+        if nm:
+            st["names"][a] = nm
+        chk[a] = time.time()
+        time.sleep(0.1)
+    write_json(state_path, st)
     out = {
         "contract": st["contract"], "chainId": cfg["chainId"], "last": st["last"], "updated": int(time.time()),
         "created": st["created"], "claims": st["claims"], "refunded": st["refunded"],
