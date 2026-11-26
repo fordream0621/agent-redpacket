@@ -82,6 +82,9 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 pre.copy{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;font-size:13px;margin:6px 0}
 .hide{display:none!important}
 .tbl{overflow-x:auto}
+/* 超过 5 条就在框里滚动：表头 + 5 行 ≈ 245px（多露半行，提示还能往下滚），表头固定 */
+.scroll5{max-height:245px;overflow-y:auto;overscroll-behavior:contain}
+.scroll5 th{position:sticky;top:0;background:var(--panel);z-index:1}
 footer{color:var(--muted);font-size:12px;margin-top:28px;line-height:1.7}
 </style>
 </head>
@@ -123,8 +126,8 @@ footer{color:var(--muted);font-size:12px;margin-top:28px;line-height:1.7}
       <div class="list" id="recent"><p class="muted">加载中…</p></div>
     </div>
     <div class="row">
-      <div class="card"><h2>最常抢到红包</h2><div class="tbl"><table id="lb-claim"></table></div></div>
-      <div class="card"><h2>发红包最多（USDT）</h2><div class="tbl"><table id="lb-give"></table></div></div>
+      <div class="card"><h2>最常抢到红包</h2><div class="tbl scroll5"><table id="lb-claim"></table></div></div>
+      <div class="card"><h2>发红包最多（USDT）</h2><div class="tbl scroll5"><table id="lb-give"></table></div></div>
     </div>
   </section>
 
@@ -325,6 +328,7 @@ function askName(k) {
 const txLink = (h, t) => el("a", { href: `${CFG.explorer}/tx/${h}`, target: "_blank", rel: "noopener", text: t || short(h) });
 const note = (kind, ...kids) => el("div", { class: "note " + kind }, ...kids);
 const fmtAmt = (v, dec) => { const s = E.formatUnits(v, dec); return s.endsWith(".0") ? s.slice(0, -2) : s; };
+const fmtShort = (v, dec) => { const s = fmtAmt(v, dec), i = s.indexOf("."); return i < 0 || s.length - i - 1 <= 6 ? s : s.slice(0, i + 7).replace(/0+$/, "").replace(/\.$/, ""); };
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
 // ------------------------------------------------------------ 读链
@@ -483,11 +487,11 @@ async function renderSquare() {
   const byClaimer = {};
   for (const c of LOGS.claims) { const k = c.claimer.toLowerCase(); byClaimer[k] = (byClaimer[k] || 0) + 1; }
   const t1 = $("lb-claim"); t1.replaceChildren(el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: "抢到次数" })));
-  Object.entries(byClaimer).sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([a, n], i) => t1.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: n }))));
+  Object.entries(byClaimer).sort((a, b) => b[1] - a[1]).slice(0, 100).forEach(([a, n], i) => t1.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: n }))));
   const byGiver = {};
   for (const p of packets) if (p.token.toLowerCase() === usdtAddr) { const k = p.creator.toLowerCase(); byGiver[k] = (byGiver[k] || 0n) + BigInt(p.total); }
   const t2 = $("lb-give"); t2.replaceChildren(el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: "USDT" })));
-  Object.entries(byGiver).sort((a, b) => (b[1] > a[1] ? 1 : -1)).slice(0, 10).forEach(([a, v], i) => t2.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: fmtAmt(v, 18) }))));
+  Object.entries(byGiver).sort((a, b) => (b[1] > a[1] ? 1 : -1)).slice(0, 100).forEach(([a, v], i) => t2.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: fmtAmt(v, 18) }))));
 }
 
 // ------------------------------------------------------------ 发红包
@@ -692,10 +696,10 @@ async function renderDetail(id) {
     const best = claims.reduce((m, c) => (BigInt(c.amount) > m ? BigInt(c.amount) : m), 0n);
     const tbl = el("table", {}, el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: meta.symbol }), el("th", { text: "" })));
     for (const c of claims) tbl.append(el("tr", {}, el("td", { text: c.index }), el("td", {}, addrLink(c.claimer)),
-      el("td", { class: "num", text: fmtAmt(BigInt(c.amount), meta.decimals) }),
+      el("td", { class: "num", title: fmtAmt(BigInt(c.amount), meta.decimals), text: fmtShort(BigInt(c.amount), meta.decimals) }),
       el("td", {}, p.random && claimed >= shares && BigInt(c.amount) === best ? el("span", { class: "chip gold", text: "手气最佳" }) : null, " ", txLink(c.tx, "交易"))));
     const list = el("div", { class: "card" }, el("h2", { text: `领取记录（${claims.length}）` }),
-      claims.length ? el("div", { class: "tbl" }, tbl) : el("p", { class: "muted", text: "还没人抢。" }),
+      claims.length ? el("div", { class: "tbl scroll5" }, tbl) : el("p", { class: "muted", text: "还没人抢。" }),
       claims.length < claimed ? el("p", { class: "small muted", text: "链上事件还在同步，过一会儿刷新。" }) : null);
     body.replaceChildren(card, list);
   } catch (e) { body.replaceChildren(note("err", "读取失败：" + errText(e))); }
