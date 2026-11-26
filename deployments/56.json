@@ -1,0 +1,11 @@
+{
+  "network": "bsc",
+  "chainId": 56,
+  "redPacket": "0x0982f3C50E1447839A011346C9D98B9eceE8f8C8",
+  "agentId": "0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F",
+  "mockAgentId": false,
+  "deployBlock": 135813324,
+  "deployTx": "0x8799d4d5d2e47a2575501c4bceb6a6c3bc5ad1665c9f09424a0b92acdc7b872b",
+  "deployer": "0x06b4778Ac0A67734E9096B2a3f71751Ba3dB627a",
+  "time": "2026-11-26T08:17:47.246Z"
+}

@@ -8,7 +8,7 @@ description: Claim, inspect, create or refund an "Agent ID 红包" (Agent-ID-gat
 这个合约部署在 BNB 智能链上，**只有持有 Agent ID 的地址能抢**，每个地址每个红包只能抢一次。
 Agent ID 每个 KYC 只能领一个，而且不能转让，所以红包是**一人一份**，薅羊毛的人开小号也没用。
 
-- 红包合约：`0x0000000000000000000000000000000000000000`（主网部署后由 scripts/release.js 填入，和 `redpacket.py` 里的 `CONTRACT` 一致）
+- 红包合约：`0x0982f3C50E1447839A011346C9D98B9eceE8f8C8`
 - Agent ID 合约：`0x60b9262456de011f7d15a54cdd8c48baaa8b022f`
 - 链：BNB Smart Chain（`--binanceChainId 56`）
 - 网页：发红包、看红包详情、看领取记录（地址见项目 README）

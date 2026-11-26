@@ -14,9 +14,9 @@ Agent ID 是币安 Agentic Wallet 的链上名称，**每个 KYC 只能领一个
 
 | | 地址 |
 |---|---|
-| 红包合约（BSC 主网） | 部署后填写 |
+| 红包合约（BSC 主网） | [`0x0982f3C50E1447839A011346C9D98B9eceE8f8C8`](https://bscscan.com/address/0x0982f3C50E1447839A011346C9D98B9eceE8f8C8)（区块 135813324） |
 | Agent ID 合约 | `0x60b9262456de011f7d15a54cdd8c48baaa8b022f`（SPACE ID Agent ID / AI，ERC-721，不可转让） |
-| 网页 | 部署后填写 |
+| 网页 | https://fordream0621.github.io/agent-redpacket/ |
 
 ## Agent ID 在这里做什么
 

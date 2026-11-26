@@ -23,7 +23,7 @@ import time
 import urllib.request
 from decimal import Decimal, InvalidOperation
 
-CONTRACT = "0x0000000000000000000000000000000000000000"  # 主网部署后填入（发布前由 scripts/release.js 写入）
+CONTRACT = "0x0982f3C50E1447839A011346C9D98B9eceE8f8C8"  # 主网部署后填入（发布前由 scripts/release.js 写入）
 CHAIN_ID = 56
 RPC = "https://bsc-dataseed.bnbchain.org"
 AGENT_ID = "0x60b9262456de011f7d15a54cdd8c48baaa8b022f"
