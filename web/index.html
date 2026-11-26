@@ -111,7 +111,7 @@ footer{color:var(--muted);font-size:12px;margin-top:28px;line-height:1.7}
       <div class="stats">
         <div class="stat"><b id="st-packets">–</b><span>红包个数</span></div>
         <div class="stat"><b id="st-claims">–</b><span>被抢次数</span></div>
-        <div class="stat"><b id="st-people">–</b><span>抢过的 Agent ID 地址</span></div>
+        <div class="stat"><b id="st-people">–</b><span id="st-people-l">抢过的 Agent ID 地址</span></div>
         <div class="stat"><b id="st-usdt">–</b><span>已发出 USDT</span></div>
       </div>
       <p class="small muted" id="st-sync"></p>
@@ -287,7 +287,12 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
-const addrLink = (a) => el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", class: "mono", text: short(a) });
+let NAMES = {};   // 地址（小写）→ Agent ID 名字（index.json 里由服务器索引）
+const addrLink = (a) => {
+  const n = NAMES[String(a).toLowerCase()];
+  return n ? el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", title: a, text: n + ".ai" })
+           : el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", class: "mono", title: a, text: short(a) });
+};
 const txLink = (h, t) => el("a", { href: `${CFG.explorer}/tx/${h}`, target: "_blank", rel: "noopener", text: t || short(h) });
 const note = (kind, ...kids) => el("div", { class: "note " + kind }, ...kids);
 const fmtAmt = (v, dec) => { const s = E.formatUnits(v, dec); return s.endsWith(".0") ? s.slice(0, -2) : s; };
@@ -312,7 +317,7 @@ async function tokenMeta(addr) {
 
 // 事件：先读 index.json（服务器索引，可选），再从它的末尾块往后用 getLogs 补；分段，出错就减半
 const LOGKEY = `rp-logs-${CFG.chainId}-${CFG.contract.toLowerCase()}`;
-let LOGS = { last: (CFG.deployBlock || 1) - 1, created: {}, claims: [], refunded: {} };
+let LOGS = { last: (CFG.deployBlock || 1) - 1, created: {}, claims: [], refunded: {}, names: {}, agentIdTotal: 0 };
 function ingest(log) {
   let ev; try { ev = IFACE.parseLog(log); } catch { return; }
   if (!ev) return;
@@ -335,23 +340,31 @@ async function syncLogs() {
     if (cached && cached.last > LOGS.last) LOGS = cached;
     try {
       const r = await fetch("index.json", { cache: "no-cache" });
-      if (r.ok) { const j = await r.json(); if (j.contract && j.contract.toLowerCase() === CFG.contract.toLowerCase() && j.last > LOGS.last) LOGS = j; }
+      if (r.ok) {
+        const j = await r.json();
+        if (j.contract && j.contract.toLowerCase() === CFG.contract.toLowerCase()) {
+          if (j.last > LOGS.last) LOGS = j;
+          LOGS.names = Object.assign({}, LOGS.names || {}, j.names || {});
+          LOGS.agentIdTotal = j.agentIdTotal || LOGS.agentIdTotal || 0;
+        }
+      }
     } catch {}
     const head = await logsP.getBlockNumber();
-    let from = LOGS.last + 1, step = 50000;
+    let from = LOGS.last + 1, step = 9999;   // 公共节点一次最多 1 万块
     while (from <= head) {
       const to = Math.min(head, from + step - 1);
       try {
         const logs = await logsP.getLogs({ address: CFG.contract, fromBlock: from, toBlock: to });
         logs.forEach(ingest);
         LOGS.last = to; from = to + 1;
-        if (step < 50000) step = Math.min(50000, step * 2);
+        if (step < 9999) step = Math.min(9999, step * 2);
         $("st-sync").textContent = `同步到区块 ${to}（最新 ${head}）`;
       } catch (e) {
-        if (step <= 500) throw e;
+        if (step <= 200) throw e;
         step = Math.floor(step / 2);
       }
     }
+    NAMES = LOGS.names || {};
     ls.set(LOGKEY, LOGS);
     $("st-sync").textContent = `链上数据同步到区块 ${LOGS.last}`;
   })().finally(() => { syncing = null; });
@@ -411,6 +424,7 @@ async function renderSquare() {
   $("st-packets").textContent = packets.length;
   $("st-claims").textContent = LOGS.claims.length;
   $("st-people").textContent = people.size;
+  if (LOGS.agentIdTotal) $("st-people-l").textContent = `抢过的 Agent ID（全网共 ${LOGS.agentIdTotal} 个，占 ${(people.size / LOGS.agentIdTotal * 100).toFixed(1)}%）`;
   $("st-usdt").textContent = Number(E.formatUnits(usdt, 18)).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 
   const list = $("recent"); list.replaceChildren();
