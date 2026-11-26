@@ -91,7 +91,14 @@ npx hardhat run scripts/check_web_abi.js --network local
    脚本会检查 Agent ID 合约的名称是不是「SPACE ID Agent ID / AI」，不对就停止。
 5. 验证源码：`npx hardhat verify --network bsc <红包合约> 0x60b9262456de011f7d15a54cdd8c48baaa8b022f`
 6. `node scripts/release.js 56`：把地址写进 `web/config.js`、`skills/agent-redpacket/redpacket.py` 和 `SKILL.md`。
-7. 把 `web/` 目录放到任意静态托管上（Caddy / Nginx / GitHub Pages 等都行）。
+7. 推送到 GitHub 后，网页由 `.github/workflows/pages.yml` 自动发布到 GitHub Pages（见下节）。
+
+## 网页发布（GitHub Pages）
+
+- 第一次：仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
+- 之后每次推送和每 10 分钟，Actions 会跑一次 `scripts/indexer.py`（红包事件 + Agent ID 名字目录），把 `web/` + `index.json` + Skill 文件发布到 `https://<用户名>.github.io/<仓库名>/`。
+- 索引状态存在 Actions 缓存里（增量），不往仓库提交生成文件；合约没部署时只发布网页。
+- 也可以放到任何静态托管上（只发 `web/` 目录也能用，没有 `index.json` 时网页直接从链上读，只是不显示 Agent ID 名字）。
 
 ## 给 AI 用（Skill）
 

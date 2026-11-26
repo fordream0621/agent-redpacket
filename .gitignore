@@ -6,3 +6,7 @@ artifacts
 cache
 typechain-types
 coverage
+scripts/.indexer_state.json
+web/index.json
+.idx
+_site

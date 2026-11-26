@@ -1,0 +1,73 @@
+# 网页 + 索引：推送到 master 或每 10 分钟，跑一次 scripts/indexer.py，把 web/ + index.json 发布到 GitHub Pages。
+# 第一次用：仓库 Settings → Pages → Build and deployment → Source 选「GitHub Actions」。
+name: pages
+
+on:
+  push:
+    branches: [master, main]
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # 索引状态（Agent ID 名字目录 + 红包事件）和上一次的 index.json 存在缓存里，增量更新
+      - uses: actions/cache/restore@v4
+        with:
+          path: .idx
+          key: idx-${{ github.run_id }}
+          restore-keys: idx-
+
+      - name: 索引
+        run: |
+          mkdir -p .idx
+          if grep -q '"deployBlock": *[1-9]' web/config.js; then
+            python3 scripts/indexer.py --state .idx/state.json --out .idx/index.new.json \
+              && mv .idx/index.new.json .idx/index.json \
+              || echo "::warning::索引出错，沿用上一次的 index.json"
+          else
+            echo "合约还没部署（web/config.js 是占位），跳过索引"
+          fi
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .idx
+          key: idx-${{ github.run_id }}
+
+      - name: 组装网站
+        run: |
+          mkdir -p _site
+          cp web/index.html web/config.js _site/
+          [ -f .idx/index.json ] && cp .idx/index.json _site/ || true
+          mkdir -p _site/skills && cp -r skills/agent-redpacket _site/skills/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4

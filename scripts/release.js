@@ -25,6 +25,7 @@ const cfg = {
   rpc: NET.rpc,
   logsRpc: NET.logsRpc,
   explorer: NET.explorer,
+  repo: process.env.REPO || "", // GitHub 仓库「用户名/仓库名」，网页给 npx skills add 用；例如 REPO=xxx/agent-redpacket node scripts/release.js 56
 };
 fs.writeFileSync(path.join(root, "web", "config.js"), `// 由 scripts/release.js 生成，别手改\nwindow.RP_CONFIG = ${JSON.stringify(cfg, null, 2)};\n`);
 console.log("web/config.js ✓");
