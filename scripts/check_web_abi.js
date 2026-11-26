@@ -35,6 +35,24 @@ async function main() {
   const names = logs.map((l) => { try { return C.interface.parseLog(l).name; } catch { return "?"; } });
   eq(names.join(","), "PacketCreated,Claimed", "getLogs 解析");
   const [ok, reason] = await C.canClaim(1, a.address); eq(`${ok},${reason}`, "false,5", "canClaim 抢过");
+  // 「复制给 AI」：网页生成的 calldata（同样的写法）直接当裸交易发，结果要对
+  const ERC20 = eval(html.match(/const ERC20 = (\[[\s\S]*?\]);/)[1]);
+  const usdt = await (await ethers.getContractFactory("MockERC20")).deploy();
+  await (await usdt.mint(creator.address, ethers.parseEther("5"))).wait();
+  const amt = ethers.parseUnits("1.5", 18), tok = await usdt.getAddress();
+  const approveData = new ethers.Interface(ERC20).encodeFunctionData("approve", [addr, amt]);
+  const createData = C.interface.encodeFunctionData("create", [tok, amt, 3, true, BigInt(24 * 3600), ethers.id("恭喜发财"), "新年快乐"]);
+  await (await creator.sendTransaction({ to: tok, value: 0n, data: approveData })).wait();
+  eq(await usdt.allowance(creator.address, addr), amt, "AI 授权：精确额度");
+  const rc2 = await (await creator.sendTransaction({ to: addr, value: 0n, data: createData })).wait();
+  const ev2 = rc2.logs.map((l) => { try { return C.interface.parseLog(l); } catch { return null; } }).find((x) => x && x.name === "PacketCreated");
+  eq(ev2.args.total, amt, "AI 发红包：金额"); eq(ev2.args.memo, "新年快乐", "AI 发红包：祝福语");
+  const pid = Number(ev2.args.id);
+  await (await a.sendTransaction({ to: addr, value: 0n, data: C.interface.encodeFunctionData("claim", [pid, "恭喜发财"]) })).wait();
+  eq((await C.claimedAmount(pid, a.address)) > 0n, true, "AI 抢红包：口令红包抢到");
+  const vb = ethers.parseEther("0.02");
+  const rc3 = await (await creator.sendTransaction({ to: addr, value: vb, data: C.interface.encodeFunctionData("create", [ethers.ZeroAddress, vb, 2, false, 3600n, ethers.ZeroHash, ""]) })).wait();
+  eq(rc3.status, 1, "AI 发 BNB 红包：一笔交易 value=金额");
   console.log(bad ? `\n${bad} 项不一致` : "\n全部一致"); process.exitCode = bad ? 1 : 0;
 }
 main().catch((e) => { console.error(e); process.exit(1); });
