@@ -34,7 +34,11 @@ async function main() {
   eq(ct.inputData, I.encodeFunctionData("create", [await usdt.getAddress(), ethers.parseEther("12.5"), 2, false, 3600, ethers.ZeroHash, ""]), "create-token 编码");
 
   // 用工具生成的 calldata 真发交易
-  await (await creator.sendTransaction({ to: cb.to, data: cb.inputData, value: BigInt(cb.value) })).wait();
+  const txc = await creator.sendTransaction({ to: cb.to, data: cb.inputData, value: BigInt(cb.value) }); await txc.wait();
+  const tr = py("tx", txc.hash);
+  eq(tr.status, "ok", "tx：发红包成功"); eq(tr.id, 1, "tx：查出红包编号"); eq(tr.packet.total, "0.01", "tx：金额");
+  eq(tr.link.endsWith("?id=1"), true, "tx：分享链接"); eq(tr.share_text.includes("口令是"), true, "tx：带口令提示");
+  console.log("   分享文字：" + tr.share_text.split("\n")[0]);
   await (await creator.sendTransaction({ to: ap.to, data: ap.inputData })).wait();
   await (await creator.sendTransaction({ to: ct.to, data: ct.inputData })).wait();
   eq(await rp.packetCount(), 2, "两个红包都建成");

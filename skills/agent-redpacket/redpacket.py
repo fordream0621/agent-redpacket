@@ -11,6 +11,7 @@
   python3 redpacket.py calldata create-bnb --amount 0.01 --shares 5 [--equal] [--hours 24] [--password 口令] [--memo 祝福语]
   python3 redpacket.py calldata approve --token 0x代币 --amount 10
   python3 redpacket.py calldata create-token --token 0x代币 --amount 10 --shares 5 [...同上]
+  python3 redpacket.py tx <交易哈希>              发红包上链后：查出红包编号、分享链接、可以转发的话
   python3 redpacket.py explain <revert 数据 0x...>
 
 所有输出都是 JSON。全局参数：--contract 0x...（默认下面的 CONTRACT）、--rpc URL。
@@ -28,6 +29,8 @@ CHAIN_ID = 56
 RPC = "https://bsc-dataseed.bnbchain.org"
 AGENT_ID = "0x60b9262456de011f7d15a54cdd8c48baaa8b022f"
 USDT = "0x55d398326f99059ff775485246999027b3197955"
+SITE = "https://fordream0621.github.io/agent-redpacket/"
+T_CREATED = "0xc0a4715bdab48509c3c54864aa406780ee5179ca18444d42f20a6c16d37ed412"
 
 SEL = {
     "canClaim": "29a2e8e6",
@@ -309,6 +312,28 @@ def cmd_calldata(a):
     raise SystemExit(json.dumps({"error": f"未知：{a.what}"}, ensure_ascii=False))
 
 
+def cmd_tx(a):
+    """发红包交易上链后：从回执里找 PacketCreated，给出红包编号、分享链接和可以转发的话。"""
+    h = a.hash.strip()
+    if not re.fullmatch(r"0x[0-9a-fA-F]{64}", h):
+        return {"error": "交易哈希格式不对"}
+    rc = rpc("eth_getTransactionReceipt", [h], a.rpc)
+    if not rc:
+        return {"status": "pending", "message": "交易还没上链，过几秒再查"}
+    if int(rc.get("status", "0x0"), 16) != 1:
+        return {"status": "failed", "message": "交易失败（revert），红包没有发出；钱没有转走（只花了 gas）"}
+    for lg in rc.get("logs", []):
+        if lg["address"].lower() == a.contract.lower() and lg["topics"] and lg["topics"][0] == T_CREATED:
+            pid = int(lg["topics"][1], 16)
+            out = cmd_info(argparse.Namespace(id=pid, who=None, contract=a.contract, rpc=a.rpc))
+            link = f"{SITE}?id={pid}"
+            say = f"🧧 我发了一个 Agent ID 红包 #{pid}：{out['total']} {out['token_symbol']} 分 {out['shares']} 份（{out['mode']}），只有持有 Agent ID 的地址能抢，一人一份。" \
+                  f"\n网页抢：{link}（在币安 App Web3 钱包的浏览器里打开）\n或者对你的 AI 说：帮我抢 Agent ID 红包 #{pid}" \
+                  + ("，口令是 <口令>" if out["needs_password"] else "")
+            return {"status": "ok", "id": pid, "link": link, "packet": out, "share_text": say}
+    return {"status": "ok", "message": "交易成功，但回执里没有红包事件（不是发红包的交易？）"}
+
+
 def cmd_explain(a):
     h = a.data.lower().removeprefix("0x")
     name, msg = ERRORS.get(h[:8], ("Unknown", "不是红包合约的错误；原样告诉用户"))
@@ -333,6 +358,8 @@ def main():
     c.add_argument("--equal", action="store_true")
     c.add_argument("--hours", default="24")
     c.add_argument("--memo")
+    t = sp.add_parser("tx")
+    t.add_argument("hash")
     e = sp.add_parser("explain")
     e.add_argument("data")
     a = p.parse_args()
@@ -347,7 +374,7 @@ def main():
         print(json.dumps({"error": "要给 --amount"}, ensure_ascii=False))
         sys.exit(2)
     try:
-        out = {"info": cmd_info, "calldata": cmd_calldata, "explain": cmd_explain}[a.cmd](a)
+        out = {"info": cmd_info, "calldata": cmd_calldata, "tx": cmd_tx, "explain": cmd_explain}[a.cmd](a)
     except (RuntimeError, OSError) as ex:
         out = {"error": f"读链失败：{ex}"}
     print(json.dumps(out, ensure_ascii=False, indent=1))

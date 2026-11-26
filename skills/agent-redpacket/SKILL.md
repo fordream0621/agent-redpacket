@@ -11,7 +11,7 @@ Agent ID 每个 KYC 只能领一个，而且不能转让，所以红包是**一�
 - 红包合约：`0x0982f3C50E1447839A011346C9D98B9eceE8f8C8`
 - Agent ID 合约：`0x60b9262456de011f7d15a54cdd8c48baaa8b022f`
 - 链：BNB Smart Chain（`--binanceChainId 56`）
-- 网页：发红包、看红包详情、看领取记录（地址见项目 README）
+- 网页：https://fordream0621.github.io/agent-redpacket/ （发红包、看红包详情、看领取记录）
 
 本目录里的 `redpacket.py` 只用 Python 标准库，**只读链上数据、生成 calldata，不签名、不发交易、不接受私钥**。
 交易全部由 Binance Agentic Wallet 完成。
@@ -71,20 +71,42 @@ baw contract-call execute --requestId <preview 返回的 requestId> --json
 
 ## 发红包
 
-**建议引导用户去网页发**：网页有表单、预览和分享链接。如果用户坚持让 AI 来发：
+用户说「帮我发个红包」「发 5U 分 20 份」之类时，按下面的步骤来。
 
-- **BNB 红包**（一笔交易）：
-  ```bash
-  python3 redpacket.py calldata create-bnb --amount 0.01 --shares 5 [--equal] [--hours 24] [--password '口令'] [--memo '祝福语']
-  ```
-  preview 时 `--value` 用输出里的 `value`（单位是 wei）。
-- **代币红包**，比如 USDT（`0x55d398326f99059fF775485246999027B3197955`，18 位小数），要两笔交易，**每笔单独确认**：
-  1. `python3 redpacket.py calldata approve --token <代币> --amount <金额>` → 只授权这一次要发的**精确金额**，绝不能是无限额
-  2. `python3 redpacket.py calldata create-token --token <代币> --amount <金额> --shares <份数> [...]`
+**第 1 步：问清楚参数**（用户没说的用默认值，但要在汇总里写出来）
 
-发之前一定要跟用户讲清楚：**有效期内（10 分钟到 30 天）发红包的人自己也撤不回**；过期后剩下的钱只会退给发红包的人。口令在第一个人抢过之后会在链上公开，所以口令只是一种玩法，不是保密手段。
-份数 1–500，每份至少 1 个最小单位，祝福语最多 140 字节（约 46 个汉字）。
-新红包的 ID 在交易回执的 `PacketCreated` 事件里（topic1），也可以在网页上看。
+| 参数 | 默认 | 范围 |
+|---|---|---|
+| 币种 | USDT（`0x55d398326f99059fF775485246999027B3197955`，18 位小数） | USDT / BNB / 用户明确给出地址的代币 |
+| 总金额 | **必须问，不能猜** | 每份至少 1 个最小单位 |
+| 份数 | **必须问，不能猜** | 1–500 |
+| 玩法 | 拼手气 | 拼手气 / 平均分（`--equal`） |
+| 有效期 | 24 小时 | 10 分钟–30 天（`--hours`） |
+| 口令 | 无 | 用户自己定 |
+| 祝福语 | 无 | ≤140 字节（约 46 个汉字） |
+
+**第 2 步：检查余额**：`baw wallet balance --json`。币不够，或者 BNB 是 0（付不了 gas），要先告诉用户。
+
+**第 3 步：把汇总讲给用户，等用户明确确认**，例如：
+> 发红包：5 USDT 分 20 份（拼手气），有效 24 小时，口令「恭喜发财」。
+> 有效期内你自己也撤不回；过期后没被抢的钱只退给你。口令在第一个人抢过之后会在链上公开。
+> USDT 红包要两笔交易：先授权 5 USDT（只授权这一次的金额），再发红包。确认吗？
+
+**第 4 步：生成交易，逐笔 preview → 用户确认 → execute**
+- **USDT / 代币红包**（两笔，**每笔单独确认**；第一笔上链后才能做第二笔）：
+  1. `python3 redpacket.py calldata approve --token <代币> --amount <金额>`：只授权这一次要发的**精确金额**，绝不能是无限额
+  2. `python3 redpacket.py calldata create-token --token <代币> --amount <金额> --shares <份数> [--equal] [--hours 24] [--password '口令'] [--memo '祝福语']`
+- **BNB 红包**（一笔）：
+  `python3 redpacket.py calldata create-bnb --amount 0.01 --shares 5 [...同上]`，preview 时 `--value` 用输出里的 `value`（单位 wei）
+
+preview 时核对：收款方是红包合约（或授权给红包合约），金额和用户确认的一致。不一致就停下。
+
+**第 5 步：交易上链后查出红包编号**
+```bash
+python3 redpacket.py tx <发红包那笔的交易哈希>
+```
+返回 `id`（红包编号）、`link`（网页链接）、`share_text`（可以直接转发的一段话）。把编号、链接和 `share_text` 给用户，**口令由用户自己单独告诉朋友**，`share_text` 里不带口令原文。
+`status=pending` 表示还没上链，过几秒再查；`status=failed` 表示交易失败，红包没发出去，钱也没转走（只花了 gas）。
 
 ## 过期退款
 
