@@ -232,7 +232,10 @@ footer{color:var(--muted);font-size:12px;margin-top:28px;line-height:1.7}
   </footer>
 </div>
 
-<script src="config.js"></script>
+<script>
+  // config.js 很小，每次打开都重新读（GitHub Pages 默认缓存 10 分钟，部署后老访客会读到旧地址）
+  document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
+</script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script>
 (() => {
