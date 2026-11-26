@@ -6,7 +6,7 @@ on:
   push:
     branches: [master, main]
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "3,13,23,33,43,53 * * * *"   # 避开整点和 */10（GitHub 定时任务拥挤时会延迟或跳过）
   workflow_dispatch:
 
 permissions:
