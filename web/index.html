@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent ID 红包</title>
+<meta name="description" content="一人一份的链上红包：只有持有 Agent ID 的地址能抢，薅羊毛的开小号也没用。">
+<style>
+:root{
+  --bg:#fbf7f2; --panel:#ffffff; --ink:#2a1d17; --muted:#7a6a60; --line:#eadfd4;
+  --red:#d4382c; --red-ink:#ffffff; --red-soft:#fde8e4; --gold:#b7791f; --gold-soft:#fdf3dc;
+  --ok:#2f7d4f; --ok-soft:#e3f3e9; --warn:#a15c00; --warn-soft:#fdf0dc; --err:#b3261e; --err-soft:#fbe4e2;
+  --shadow:0 1px 2px rgba(60,30,10,.06),0 4px 16px rgba(60,30,10,.05);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#17110e; --panel:#211915; --ink:#f3e9e1; --muted:#b09d90; --line:#3a2d26;
+  --red:#e5584b; --red-ink:#1b0d0a; --red-soft:#3b1d19; --gold:#e0a84a; --gold-soft:#36291a;
+  --ok:#62c08a; --ok-soft:#18301f; --warn:#e3a34a; --warn-soft:#352614; --err:#f08a80; --err-soft:#3a1b18;
+  --shadow:none;
+}}
+:root[data-theme="dark"]{
+  --bg:#17110e; --panel:#211915; --ink:#f3e9e1; --muted:#b09d90; --line:#3a2d26;
+  --red:#e5584b; --red-ink:#1b0d0a; --red-soft:#3b1d19; --gold:#e0a84a; --gold-soft:#36291a;
+  --ok:#62c08a; --ok-soft:#18301f; --warn:#e3a34a; --warn-soft:#352614; --err:#f08a80; --err-soft:#3a1b18;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif}
+a{color:var(--red)}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 48px}
+header{display:flex;align-items:center;gap:12px;padding:18px 0 10px;flex-wrap:wrap}
+.logo{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.logo .env{width:26px;height:32px;border-radius:5px;background:var(--red);position:relative;flex:none}
+.logo .env::after{content:"";position:absolute;left:50%;top:9px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--gold)}
+header .sp{flex:1}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;font:inherit;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--red);font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+textarea{resize:vertical;min-height:60px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-weight:600;border-radius:8px;padding:9px 16px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--red);border-color:var(--red);color:var(--red-ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:13px;font-weight:500}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;word-break:break-all}
+.note{border-radius:8px;padding:10px 12px;font-size:14px;margin:12px 0}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.err{background:var(--err-soft);color:var(--err)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.note.info{background:var(--gold-soft);color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--red-soft);color:var(--red)}
+.chip.gold{background:var(--gold-soft);color:var(--gold)}
+.chip.gray{background:var(--line);color:var(--muted)}
+.packet{display:flex;gap:16px;align-items:flex-start}
+.packet .env{width:64px;height:80px;border-radius:10px;background:var(--red);position:relative;flex:none}
+.packet .env::after{content:"";position:absolute;left:50%;top:24px;width:24px;height:24px;margin-left:-12px;border-radius:50%;background:var(--gold)}
+.packet .env.dim{opacity:.4}
+.big{font-size:26px;font-weight:700}
+.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{font-weight:500;color:var(--muted);font-size:13px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--bg);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.list a.item{display:flex;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.list a.item:hover{background:var(--bg)}
+pre.copy{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;font-size:13px;margin:6px 0}
+.hide{display:none!important}
+.tbl{overflow-x:auto}
+footer{color:var(--muted);font-size:12px;margin-top:28px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><span class="env" aria-hidden="true"></span>Agent ID 红包</div>
+    <span class="chip gold">一人一份</span>
+    <span class="sp"></span>
+    <span id="acct" class="small muted"></span>
+    <button id="connect" class="btn sm">连接钱包</button>
+  </header>
+
+  <div id="banner"></div>
+
+  <nav id="tabs">
+    <button data-tab="square" class="on">广场</button>
+    <button data-tab="create">发红包</button>
+    <button data-tab="detail">红包详情</button>
+    <button data-tab="ai">让 AI 帮我抢</button>
+    <button data-tab="about">规则</button>
+  </nav>
+
+  <!-- 广场 -->
+  <section id="tab-square">
+    <div class="card">
+      <h2>数据</h2>
+      <div class="stats">
+        <div class="stat"><b id="st-packets">–</b><span>红包个数</span></div>
+        <div class="stat"><b id="st-claims">–</b><span>被抢次数</span></div>
+        <div class="stat"><b id="st-people">–</b><span>抢过的 Agent ID 地址</span></div>
+        <div class="stat"><b id="st-usdt">–</b><span>已发出 USDT</span></div>
+      </div>
+      <p class="small muted" id="st-sync"></p>
+    </div>
+    <div class="card">
+      <h2>最新红包</h2>
+      <div class="list" id="recent"><p class="muted">加载中…</p></div>
+    </div>
+    <div class="row">
+      <div class="card"><h2>最常抢到红包</h2><div class="tbl"><table id="lb-claim"></table></div></div>
+      <div class="card"><h2>发红包最多（USDT）</h2><div class="tbl"><table id="lb-give"></table></div></div>
+    </div>
+  </section>
+
+  <!-- 发红包 -->
+  <section id="tab-create" class="hide">
+    <div class="card">
+      <h2>发一个红包</h2>
+      <p class="small muted">只有持有 Agent ID 的地址能抢，每个地址一份。<b>有效期内你自己也撤不回</b>，过期后剩下的自动可退回给你。</p>
+      <div class="row">
+        <div>
+          <label for="c-token">币种</label>
+          <select id="c-token">
+            <option value="usdt">USDT（BSC）</option>
+            <option value="usdc">USDC（BSC）</option>
+            <option value="bnb">BNB</option>
+            <option value="custom">其他代币（填合约地址）</option>
+          </select>
+        </div>
+        <div id="c-custom-wrap" class="hide">
+          <label for="c-custom">代币合约地址</label>
+          <input id="c-custom" placeholder="0x…" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="row">
+        <div><label for="c-amount">总金额</label><input id="c-amount" inputmode="decimal" placeholder="例如 10"></div>
+        <div><label for="c-shares">份数（1–500）</label><input id="c-shares" inputmode="numeric" value="10"></div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="c-mode">玩法</label>
+          <select id="c-mode"><option value="random">拼手气（每份随机）</option><option value="equal">平均分</option></select>
+        </div>
+        <div>
+          <label for="c-hours">有效期</label>
+          <select id="c-hours">
+            <option value="1">1 小时</option><option value="6">6 小时</option><option value="24" selected>24 小时</option>
+            <option value="72">3 天</option><option value="168">7 天</option>
+          </select>
+        </div>
+      </div>
+      <label for="c-pass">口令（可选，抢的人要说对才能抢；第一个人抢过后口令会在链上公开）</label>
+      <input id="c-pass" maxlength="64" placeholder="例如：恭喜发财" autocomplete="off">
+      <label for="c-memo">祝福语（可选，最多 140 字节，约 46 个汉字）</label>
+      <input id="c-memo" placeholder="新年快乐">
+      <div id="c-preview" class="note info small"></div>
+      <button id="c-go" class="btn primary">发红包</button>
+      <div id="c-msg"></div>
+    </div>
+  </section>
+
+  <!-- 详情 -->
+  <section id="tab-detail" class="hide">
+    <div class="card">
+      <div class="row" style="align-items:end">
+        <div><label for="d-id">红包 ID</label><input id="d-id" inputmode="numeric" placeholder="例如 12"></div>
+        <div><button id="d-load" class="btn">查看</button></div>
+      </div>
+    </div>
+    <div id="d-body"></div>
+  </section>
+
+  <!-- AI -->
+  <section id="tab-ai" class="hide">
+    <div class="card">
+      <h2>让你的 AI 帮你抢</h2>
+      <p>币安 <b>Agentic Wallet</b> 可以让 AI（Claude、ChatGPT 等）替你操作链上钱包。装上我们的 Skill 以后，你只要说一句「帮我抢红包 #12」，AI 就会先查能不能抢、给你看交易预览，<b>你确认之后</b>才发出。</p>
+      <h3>1. 准备</h3>
+      <ol class="small">
+        <li>在币安 App 领取 Agent ID：钱包 → 首页横幅 → Agent ID（每个 KYC 一个，免费，只付一点 BNB 网络费）。</li>
+        <li>安装 Agentic Wallet：<a href="https://web3.binance.com/zh-CN/dev-docs/products/agentic-wallet/install" target="_blank" rel="noopener">官方说明</a>。</li>
+        <li>在币安 App 打开 Agentic 钱包的<b>开发者模式</b>（管理 → Settings → Developer Mode；7 天有效）。调用红包合约需要它。</li>
+        <li>钱包里留一点 BNB 当 gas（抢一次约 0.00001 BNB）。</li>
+      </ol>
+      <h3>2. 安装红包 Skill</h3>
+      <pre class="copy" id="ai-install"></pre>
+      <h3>3. 对 AI 说</h3>
+      <pre class="copy">帮我抢 Agent ID 红包 #12，口令是 恭喜发财</pre>
+      <p class="small muted">AI 每次上链前都会先给你看预览，抢红包不会转出你的任何代币，只花一点 gas。别让 AI 替你确认。</p>
+    </div>
+  </section>
+
+  <!-- 规则 -->
+  <section id="tab-about" class="hide">
+    <div class="card">
+      <h2>规则</h2>
+      <ul>
+        <li><b>只有持有 Agent ID 的地址能抢</b>，每个地址每个红包一份。Agent ID 每个 KYC 一个、不能转让，所以开小号薅没用。</li>
+        <li>拼手气：每份在 1 到「剩余平均值的 2 倍」之间随机，最后一份拿剩下的。平均分：剩余 ÷ 剩余份数。</li>
+        <li>有效期 10 分钟到 30 天。<b>有效期内发红包的人也撤不回</b>；过期后任何人都可以点「退款」，但钱只会退给发红包的人。</li>
+        <li>合约开源，<b>没有 owner、没有管理员、不收手续费、不能升级</b>。合约只保管红包里的钱，谁都挪不走。</li>
+        <li>只接受足额到账的代币（转账扣费的代币会被拒绝）。</li>
+      </ul>
+      <h3>风险提示</h3>
+      <ul class="small">
+        <li>合约<b>未经专业审计</b>，请只用小额。</li>
+        <li>拼手气的随机数来自区块数据，<b>不是安全随机数</b>，只适合娱乐小额红包。</li>
+        <li>链上数据全部公开：谁抢了多少、口令（第一个人抢过之后）都看得到。</li>
+        <li>Agent ID 只能证明「一个 KYC 一个号」，不代表对方的身份、信誉或任何担保。</li>
+        <li>本站不收集任何数据，不托管任何资产，不会要你的私钥或助记词。<b>谁跟你要私钥都是骗子。</b></li>
+      </ul>
+      <p class="small">合约：<span id="ab-contract" class="mono"></span><br>Agent ID 合约：<span id="ab-agent" class="mono"></span></p>
+    </div>
+  </section>
+
+  <footer>
+    Agent ID 红包 · 开源、无 owner、不收手续费 · 不构成任何投资建议 · 不是币安官方产品
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+(() => {
+"use strict";
+const E = window.ethers;
+const CFG = Object.assign({
+  chainId: 56, chainName: "BNB Smart Chain", contract: "0x0000000000000000000000000000000000000000",
+  agentId: "0x60b9262456de011f7d15a54cdd8c48baaa8b022f", deployBlock: 0, mockAgentId: false,
+  rpc: ["https://bsc-dataseed.bnbchain.org"], logsRpc: "https://bsc-rpc.publicnode.com", explorer: "https://bscscan.com",
+}, window.RP_CONFIG || {});
+const ZERO = "0x0000000000000000000000000000000000000000";
+const TOKENS = CFG.chainId === 56 ? {
+  usdt: "0x55d398326f99059fF775485246999027B3197955",
+  usdc: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+} : {};
+const ABI = [
+  "function create(address token,uint256 amount,uint16 shares,bool random,uint64 duration,bytes32 passHash,string memo) payable returns (uint256)",
+  "function claim(uint256 id,string password) returns (uint256)",
+  "function refund(uint256 id)",
+  "function packetCount() view returns (uint256)",
+  "function claimedAmount(uint256,address) view returns (uint256)",
+  "function canClaim(uint256 id,address who) view returns (bool ok,uint8 reason)",
+  "function getPacket(uint256 id) view returns (tuple(address creator,address token,uint64 expiry,uint16 shares,uint16 claimed,bool random,bool refunded,uint256 total,uint256 remaining,bytes32 passHash))",
+  "event PacketCreated(uint256 indexed id,address indexed creator,address indexed token,uint256 total,uint16 shares,bool random,uint64 expiry,bool hasPassword,string memo)",
+  "event Claimed(uint256 indexed id,address indexed claimer,uint256 amount,uint16 index)",
+  "event Refunded(uint256 indexed id,address indexed creator,uint256 amount)",
+  "error NoAgentID()","error BadParams()","error NotFound()","error Expired()","error NotExpired()","error AllClaimed()",
+  "error AlreadyClaimed()","error WrongPassword()","error AlreadyRefunded()","error TransferFailed()","error Reentrancy()",
+];
+const ERC20 = [
+  "function symbol() view returns (string)", "function decimals() view returns (uint8)",
+  "function balanceOf(address) view returns (uint256)", "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+];
+const ERR_ZH = {
+  NoAgentID: "这个地址没有 Agent ID。请先在币安 App 领取：钱包 → 首页横幅 → Agent ID",
+  AlreadyClaimed: "你已经抢过这个红包了", AllClaimed: "红包已经被抢完了", Expired: "红包已过期",
+  WrongPassword: "口令不对", NotFound: "没有这个红包", AlreadyRefunded: "红包已退款", NotExpired: "还没过期，不能退款",
+  BadParams: "参数不对（份数 1–500、金额 ≥ 份数、有效期 10 分钟–30 天、祝福语 ≤140 字节、代币必须是合约、不支持转账扣费代币）",
+  TransferFailed: "转账失败", Reentrancy: "重入被拒绝",
+};
+const REASON = ["可以抢", "没有这个红包", "红包已退款", "红包已过期", "红包已被抢完", "你已经抢过了", "你的地址没有 Agent ID（先在币安 App 领取）"];
+const deployed = CFG.contract.toLowerCase() !== ZERO;
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+};
+const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
+const addrLink = (a) => el("a", { href: `${CFG.explorer}/address/${a}`, target: "_blank", rel: "noopener", class: "mono", text: short(a) });
+const txLink = (h, t) => el("a", { href: `${CFG.explorer}/tx/${h}`, target: "_blank", rel: "noopener", text: t || short(h) });
+const note = (kind, ...kids) => el("div", { class: "note " + kind }, ...kids);
+const fmtAmt = (v, dec) => { const s = E.formatUnits(v, dec); return s.endsWith(".0") ? s.slice(0, -2) : s; };
+const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+// ------------------------------------------------------------ 读链
+const rp = new E.JsonRpcProvider(CFG.rpc[0], CFG.chainId, { staticNetwork: true });
+const logsP = new E.JsonRpcProvider(CFG.logsRpc, CFG.chainId, { staticNetwork: true });
+const C = new E.Contract(CFG.contract, ABI, rp);
+const IFACE = C.interface;
+const tokenCache = { [ZERO]: { symbol: "BNB", decimals: 18 } };
+async function tokenMeta(addr) {
+  const k = addr.toLowerCase();
+  if (k === ZERO) return tokenCache[ZERO];
+  if (tokenCache[k]) return tokenCache[k];
+  const t = new E.Contract(addr, ERC20, rp);
+  let symbol = "?", decimals = 18;
+  try { symbol = String(await t.symbol()).replace(/[^0-9A-Za-z._-]/g, "").slice(0, 12) || "?"; } catch {}
+  decimals = Number(await t.decimals());
+  return (tokenCache[k] = { symbol, decimals });
+}
+
+// 事件：先读 index.json（服务器索引，可选），再从它的末尾块往后用 getLogs 补；分段，出错就减半
+const LOGKEY = `rp-logs-${CFG.chainId}-${CFG.contract.toLowerCase()}`;
+let LOGS = { last: (CFG.deployBlock || 1) - 1, created: {}, claims: [], refunded: {} };
+function ingest(log) {
+  let ev; try { ev = IFACE.parseLog(log); } catch { return; }
+  if (!ev) return;
+  const a = ev.args, blk = Number(log.blockNumber), tx = log.transactionHash;
+  if (ev.name === "PacketCreated") {
+    LOGS.created[String(a.id)] = { id: Number(a.id), creator: a.creator, token: a.token, total: a.total.toString(), shares: Number(a.shares), random: a.random, expiry: Number(a.expiry), hasPassword: a.hasPassword, memo: a.memo, blk, tx };
+  } else if (ev.name === "Claimed") {
+    const key = tx + ":" + log.index;
+    if (!LOGS.claims.some((c) => c.key === key)) LOGS.claims.push({ key, id: Number(a.id), claimer: a.claimer, amount: a.amount.toString(), index: Number(a.index), blk, tx });
+  } else if (ev.name === "Refunded") {
+    LOGS.refunded[String(a.id)] = { amount: a.amount.toString(), blk, tx };
+  }
+}
+let syncing = null;
+async function syncLogs() {
+  if (!deployed) return;
+  if (syncing) return syncing;
+  syncing = (async () => {
+    const cached = ls.get(LOGKEY);
+    if (cached && cached.last > LOGS.last) LOGS = cached;
+    try {
+      const r = await fetch("index.json", { cache: "no-cache" });
+      if (r.ok) { const j = await r.json(); if (j.contract && j.contract.toLowerCase() === CFG.contract.toLowerCase() && j.last > LOGS.last) LOGS = j; }
+    } catch {}
+    const head = await logsP.getBlockNumber();
+    let from = LOGS.last + 1, step = 50000;
+    while (from <= head) {
+      const to = Math.min(head, from + step - 1);
+      try {
+        const logs = await logsP.getLogs({ address: CFG.contract, fromBlock: from, toBlock: to });
+        logs.forEach(ingest);
+        LOGS.last = to; from = to + 1;
+        if (step < 50000) step = Math.min(50000, step * 2);
+        $("st-sync").textContent = `同步到区块 ${to}（最新 ${head}）`;
+      } catch (e) {
+        if (step <= 500) throw e;
+        step = Math.floor(step / 2);
+      }
+    }
+    ls.set(LOGKEY, LOGS);
+    $("st-sync").textContent = `链上数据同步到区块 ${LOGS.last}`;
+  })().finally(() => { syncing = null; });
+  return syncing;
+}
+
+// ------------------------------------------------------------ 钱包
+let signer = null, me = null;
+function injected() { return window.ethereum || window.BinanceChain || null; }
+async function connect() {
+  const inj = injected();
+  if (!inj) { alert("没检测到浏览器钱包。请用装了钱包插件的浏览器，或在币安 App / 钱包 App 的内置浏览器里打开本页。"); return null; }
+  const bp = new E.BrowserProvider(inj, "any");
+  await bp.send("eth_requestAccounts", []);
+  const net = await bp.getNetwork();
+  if (Number(net.chainId) !== CFG.chainId) {
+    try { await bp.send("wallet_switchEthereumChain", [{ chainId: "0x" + CFG.chainId.toString(16) }]); }
+    catch (e) { alert(`请把钱包切到 ${CFG.chainName}（链 ID ${CFG.chainId}）`); return null; }
+  }
+  const bp2 = new E.BrowserProvider(inj, "any");
+  signer = await bp2.getSigner();
+  me = await signer.getAddress();
+  $("acct").textContent = short(me);
+  $("connect").textContent = "已连接";
+  if (inj.on) { inj.on("accountsChanged", () => location.reload()); inj.on("chainChanged", () => location.reload()); }
+  return signer;
+}
+async function needSigner() { return signer || await connect(); }
+function errText(e) {
+  const data = e?.data || e?.info?.error?.data || e?.error?.data || e?.revert?.data;
+  const hex = typeof data === "string" ? data : data?.data;
+  if (hex && hex.length >= 10) { try { const p = IFACE.parseError(hex); if (p) return ERR_ZH[p.name] || p.name; } catch {} }
+  if (e?.revert?.name) return ERR_ZH[e.revert.name] || e.revert.name;
+  if (e?.code === "ACTION_REJECTED" || e?.code === 4001) return "你在钱包里取消了";
+  return e?.shortMessage || e?.message || String(e);
+}
+
+// ------------------------------------------------------------ 标签页 / 路由
+function show(tab) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+  document.querySelectorAll("section[id^=tab-]").forEach((s) => s.classList.toggle("hide", s.id !== "tab-" + tab));
+}
+$("tabs").addEventListener("click", (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  show(t.dataset.tab);
+  if (t.dataset.tab === "square") renderSquare();
+});
+
+// ------------------------------------------------------------ 广场
+async function renderSquare() {
+  if (!deployed) { $("recent").replaceChildren(el("p", { class: "muted", text: "合约还没部署。" })); return; }
+  try { await syncLogs(); } catch (e) { $("st-sync").textContent = "读取链上事件失败：" + errText(e); }
+  const packets = Object.values(LOGS.created).sort((a, b) => b.id - a.id);
+  const people = new Set(LOGS.claims.map((c) => c.claimer.toLowerCase()));
+  let usdt = 0n; const usdtAddr = (TOKENS.usdt || "").toLowerCase();
+  for (const c of LOGS.claims) { const p = LOGS.created[String(c.id)]; if (p && p.token.toLowerCase() === usdtAddr) usdt += BigInt(c.amount); }
+  $("st-packets").textContent = packets.length;
+  $("st-claims").textContent = LOGS.claims.length;
+  $("st-people").textContent = people.size;
+  $("st-usdt").textContent = Number(E.formatUnits(usdt, 18)).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+
+  const list = $("recent"); list.replaceChildren();
+  if (!packets.length) list.append(el("p", { class: "muted", text: "还没有红包，去发第一个吧。" }));
+  const now = Date.now() / 1000;
+  for (const p of packets.slice(0, 20)) {
+    const meta = await tokenMeta(p.token).catch(() => ({ symbol: "?", decimals: 18 }));
+    const got = LOGS.claims.filter((c) => c.id === p.id).length;
+    const state = LOGS.refunded[String(p.id)] ? "已退款" : got >= p.shares ? "已抢完" : p.expiry <= now ? "已过期" : "可以抢";
+    list.append(el("a", { class: "item", href: `?id=${p.id}` },
+      el("span", {}, el("b", { text: `#${p.id} ` }), `${fmtAmt(BigInt(p.total), meta.decimals)} ${meta.symbol} · ${p.shares} 份 · ${p.random ? "拼手气" : "平均分"}`,
+        p.hasPassword ? el("span", { class: "chip gold", style: "margin-left:6px", text: "口令" }) : null,
+        p.memo ? el("div", { class: "small muted", text: p.memo }) : null),
+      el("span", { class: "small " + (state === "可以抢" ? "" : "muted"), text: `${got}/${p.shares} · ${state}` })));
+  }
+
+  const byClaimer = {};
+  for (const c of LOGS.claims) { const k = c.claimer.toLowerCase(); byClaimer[k] = (byClaimer[k] || 0) + 1; }
+  const t1 = $("lb-claim"); t1.replaceChildren(el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: "抢到次数" })));
+  Object.entries(byClaimer).sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([a, n], i) => t1.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: n }))));
+  const byGiver = {};
+  for (const p of packets) if (p.token.toLowerCase() === usdtAddr) { const k = p.creator.toLowerCase(); byGiver[k] = (byGiver[k] || 0n) + BigInt(p.total); }
+  const t2 = $("lb-give"); t2.replaceChildren(el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: "USDT" })));
+  Object.entries(byGiver).sort((a, b) => (b[1] > a[1] ? 1 : -1)).slice(0, 10).forEach(([a, v], i) => t2.append(el("tr", {}, el("td", { text: i + 1 }), el("td", {}, addrLink(a)), el("td", { class: "num", text: fmtAmt(v, 18) }))));
+}
+
+// ------------------------------------------------------------ 发红包
+const cTok = $("c-token");
+cTok.addEventListener("change", () => { $("c-custom-wrap").classList.toggle("hide", cTok.value !== "custom"); preview(); });
+["c-amount", "c-shares", "c-mode", "c-hours", "c-pass", "c-memo", "c-custom"].forEach((i) => $(i).addEventListener("input", preview));
+function tokenAddr() {
+  if (cTok.value === "bnb") return ZERO;
+  if (cTok.value === "custom") return $("c-custom").value.trim();
+  return TOKENS[cTok.value] || "";
+}
+function preview() {
+  const amt = $("c-amount").value.trim(), n = $("c-shares").value.trim(), sym = cTok.value === "custom" ? "代币" : cTok.options[cTok.selectedIndex].text.split("（")[0];
+  const hrs = $("c-hours").options[$("c-hours").selectedIndex].text;
+  const memoBytes = new TextEncoder().encode($("c-memo").value).length;
+  $("c-preview").textContent = amt && n
+    ? `${amt} ${sym} 分 ${n} 份（${$("c-mode").value === "random" ? "拼手气" : "平均分"}），有效 ${hrs}${$("c-pass").value ? "，带口令" : ""}。有效期内撤不回。${memoBytes > 140 ? `　⚠️ 祝福语 ${memoBytes} 字节，超过 140` : ""}`
+    : "填好金额和份数后，这里会显示预览。";
+}
+preview();
+$("c-go").addEventListener("click", async () => {
+  const msg = $("c-msg"); msg.replaceChildren();
+  const say = (k, ...t) => msg.replaceChildren(note(k, ...t));
+  if (!deployed) return say("err", "合约还没部署。");
+  try {
+    const token = tokenAddr();
+    if (!E.isAddress(token)) return say("err", "代币地址不对");
+    const meta = await tokenMeta(token);
+    const amount = E.parseUnits($("c-amount").value.trim() || "0", meta.decimals);
+    const shares = parseInt($("c-shares").value, 10);
+    const hours = Number($("c-hours").value);
+    const memo = $("c-memo").value;
+    const pass = $("c-pass").value;
+    if (!(shares >= 1 && shares <= 500)) return say("err", "份数 1–500");
+    if (amount < BigInt(shares)) return say("err", "金额太小");
+    if (new TextEncoder().encode(memo).length > 140) return say("err", "祝福语超过 140 字节");
+    const s = await needSigner(); if (!s) return;
+    const text = `确认发红包？\n\n${fmtAmt(amount, meta.decimals)} ${meta.symbol} 分 ${shares} 份（${$("c-mode").value === "random" ? "拼手气" : "平均分"}）\n有效 ${hours} 小时${pass ? "，口令：" + pass : ""}\n\n有效期内你也撤不回；过期后剩余可以退回给你。\n合约：${CFG.contract}`;
+    if (!confirm(text)) return;
+    const Cw = C.connect(s);
+    if (token !== ZERO) {
+      const t = new E.Contract(token, ERC20, s);
+      const bal = await t.balanceOf(me);
+      if (bal < amount) return say("err", `余额不够：你有 ${fmtAmt(bal, meta.decimals)} ${meta.symbol}`);
+      const al = await t.allowance(me, CFG.contract);
+      if (al < amount) {
+        say("info", `第 1 步：授权红包合约使用 ${fmtAmt(amount, meta.decimals)} ${meta.symbol}（只授权这一次的金额，不是无限额）…`);
+        const tx = await t.approve(CFG.contract, amount);
+        say("info", "授权已发出，等待上链… ", txLink(tx.hash));
+        await tx.wait();
+      }
+    }
+    say("info", (token !== ZERO ? "第 2 步：" : "") + "请在钱包里确认发红包…");
+    const passHash = pass ? E.id(pass) : E.ZeroHash;
+    const tx = await Cw.create(token, amount, shares, $("c-mode").value === "random", BigInt(hours * 3600), passHash, memo, { value: token === ZERO ? amount : 0n });
+    say("info", "已发出，等待上链… ", txLink(tx.hash));
+    const rc = await tx.wait();
+    let id = null;
+    for (const lg of rc.logs) { try { const p = IFACE.parseLog(lg); if (p && p.name === "PacketCreated") id = Number(p.args.id); } catch {} }
+    const link = location.origin + location.pathname + "?id=" + id;
+    msg.replaceChildren(note("ok", `红包 #${id} 发好了！`, el("br"), "分享链接：", el("span", { class: "mono", text: link }),
+      el("br"), pass ? `口令：${pass}（单独发给朋友）` : "", el("br"), "对 AI 说：", el("span", { class: "mono", text: `帮我抢 Agent ID 红包 #${id}${pass ? "，口令是 " + pass : ""}` }),
+      el("br"), el("a", { href: "?id=" + id, text: "打开红包页" })));
+  } catch (e) { say("err", errText(e)); }
+});
+
+// ------------------------------------------------------------ 详情
+$("d-load").addEventListener("click", () => { const v = parseInt($("d-id").value, 10); if (v > 0) { history.replaceState(null, "", "?id=" + v); renderDetail(v); } });
+async function renderDetail(id) {
+  show("detail"); $("d-id").value = id;
+  const body = $("d-body");
+  if (!deployed) return body.replaceChildren(note("err", "合约还没部署。"));
+  body.replaceChildren(el("div", { class: "card muted", text: "读取中…" }));
+  try {
+    const p = await C.getPacket(id);
+    if (p.creator === ZERO) return body.replaceChildren(note("err", `没有红包 #${id}`));
+    const meta = await tokenMeta(p.token);
+    const now = Math.floor(Date.now() / 1000), exp = Number(p.expiry);
+    const shares = Number(p.shares), claimed = Number(p.claimed);
+    const state = p.refunded ? "已退款" : claimed >= shares ? "已抢完" : exp <= now ? "已过期" : "可以抢";
+    await syncLogs().catch(() => {});
+    const ev = LOGS.created[String(id)];
+    const left = exp - now;
+    const leftTxt = left > 0 ? (left > 86400 ? `${Math.floor(left / 86400)} 天 ${Math.floor((left % 86400) / 3600)} 小时` : left > 3600 ? `${Math.floor(left / 3600)} 小时 ${Math.floor((left % 3600) / 60)} 分` : `${Math.ceil(left / 60)} 分钟`) : "已到期";
+
+    const card = el("div", { class: "card" },
+      el("div", { class: "packet" }, el("span", { class: "env" + (state === "可以抢" ? "" : " dim"), "aria-hidden": "true" }),
+        el("div", { style: "flex:1;min-width:0" },
+          el("div", { class: "chips" }, el("span", { class: "chip", text: `#${id}` }), el("span", { class: "chip gold", text: p.random ? "拼手气" : "平均分" }),
+            p.passHash !== E.ZeroHash ? el("span", { class: "chip gold", text: "要口令" }) : null, el("span", { class: "chip gray", text: state })),
+          ev && ev.memo ? el("div", { style: "margin-top:8px;font-size:17px", text: ev.memo }) : null,
+          el("div", { class: "big", text: `${fmtAmt(p.total, meta.decimals)} ${meta.symbol}` }),
+          el("div", { class: "bar" }, el("i", { style: `width:${Math.round((claimed / shares) * 100)}%` })),
+          el("div", { class: "small muted" }, `已抢 ${claimed}/${shares} 份 · 剩 ${fmtAmt(p.remaining, meta.decimals)} ${meta.symbol} · ${leftTxt}`),
+          el("div", { class: "small muted" }, "发红包的人 ", addrLink(p.creator)))));
+    const act = el("div", { style: "margin-top:14px" });
+    card.append(act);
+
+    if (state === "可以抢") {
+      const pw = p.passHash !== E.ZeroHash ? el("input", { placeholder: "输入口令", autocomplete: "off", style: "margin-bottom:8px" }) : null;
+      const out = el("div");
+      const btn = el("button", { class: "btn primary", text: "抢红包", onclick: async () => {
+        out.replaceChildren();
+        try {
+          const s = await needSigner(); if (!s) return;
+          const [ok, reason] = await C.canClaim(id, me);
+          if (!ok) return out.replaceChildren(note(Number(reason) === 6 ? "warn" : "err", REASON[Number(reason)] || "不能抢"));
+          const pass = pw ? pw.value : "";
+          await C.claim.staticCall(id, pass, { from: me });
+          const tx = await C.connect(s).claim(id, pass);
+          out.replaceChildren(note("info", "已发出，等待上链… ", txLink(tx.hash)));
+          await tx.wait();
+          const got = await C.claimedAmount(id, me);
+          out.replaceChildren(note("ok", `抢到 ${fmtAmt(got, meta.decimals)} ${meta.symbol} 🎉 `, txLink(tx.hash, "查看交易")));
+        } catch (e) { out.replaceChildren(note("err", errText(e))); }
+      } });
+      act.append(pw || "", btn, el("span", { class: "small muted", style: "margin-left:10px", text: "只有持有 Agent ID 的地址能抢，每个地址一份" }), out);
+      const aiTxt = `帮我抢 Agent ID 红包 #${id}${p.passHash !== E.ZeroHash ? "，口令是 <口令>" : ""}`;
+      act.append(el("h3", { text: "或者让你的 AI 抢" }), el("pre", { class: "copy", text: aiTxt }),
+        el("p", { class: "small muted" }, "需要装好 Agentic Wallet 和红包 Skill，见「让 AI 帮我抢」。"));
+    } else if (exp <= now && !p.refunded && p.remaining > 0n) {
+      const out = el("div");
+      act.append(note("info", `红包已过期，剩 ${fmtAmt(p.remaining, meta.decimals)} ${meta.symbol} 没被抢。任何人都可以点退款，钱只会退给发红包的人。`),
+        el("button", { class: "btn", text: "退款给发红包的人", onclick: async () => {
+          try { const s = await needSigner(); if (!s) return; const tx = await C.connect(s).refund(id); out.replaceChildren(note("info", "已发出… ", txLink(tx.hash))); await tx.wait(); out.replaceChildren(note("ok", "已退款")); }
+          catch (e) { out.replaceChildren(note("err", errText(e))); }
+        } }), out);
+    }
+    if (me) {
+      const got = await C.claimedAmount(id, me);
+      if (got > 0n) act.prepend(note("ok", `你抢到了 ${fmtAmt(got, meta.decimals)} ${meta.symbol}`));
+    }
+
+    const claims = LOGS.claims.filter((c) => c.id === id).sort((a, b) => a.index - b.index);
+    const best = claims.reduce((m, c) => (BigInt(c.amount) > m ? BigInt(c.amount) : m), 0n);
+    const tbl = el("table", {}, el("tr", {}, el("th", { text: "#" }), el("th", { text: "地址" }), el("th", { class: "num", text: meta.symbol }), el("th", { text: "" })));
+    for (const c of claims) tbl.append(el("tr", {}, el("td", { text: c.index }), el("td", {}, addrLink(c.claimer)),
+      el("td", { class: "num", text: fmtAmt(BigInt(c.amount), meta.decimals) }),
+      el("td", {}, p.random && claimed >= shares && BigInt(c.amount) === best ? el("span", { class: "chip gold", text: "手气最佳" }) : null, " ", txLink(c.tx, "交易"))));
+    const list = el("div", { class: "card" }, el("h2", { text: `领取记录（${claims.length}）` }),
+      claims.length ? el("div", { class: "tbl" }, tbl) : el("p", { class: "muted", text: "还没人抢。" }),
+      claims.length < claimed ? el("p", { class: "small muted", text: "链上事件还在同步，过一会儿刷新。" }) : null);
+    body.replaceChildren(card, list);
+  } catch (e) { body.replaceChildren(note("err", "读取失败：" + errText(e))); }
+}
+
+// ------------------------------------------------------------ 初始化
+$("connect").addEventListener("click", () => connect().catch((e) => alert(errText(e))));
+$("ab-contract").replaceChildren(deployed ? addrLink(CFG.contract) : "（还没部署）");
+$("ab-agent").replaceChildren(addrLink(CFG.agentId));
+$("ai-install").textContent = "npx skills add binance/binance-skills-hub/skills/binance-web3/binance-agentic-wallet\n# 红包 Skill：把 skills/agent-redpacket 目录（SKILL.md + redpacket.py）放进你的 AI 的 skills 目录";
+if (!deployed) $("banner").append(note("warn", "合约还没部署，现在只能看界面。"));
+if (CFG.mockAgentId) $("banner").append(note("warn", `这是测试网（${CFG.chainName}），Agent ID 是测试用的假合约，红包里的币没有价值。`));
+const qid = parseInt(new URLSearchParams(location.search).get("id"), 10);
+if (qid > 0) renderDetail(qid); else renderSquare();
+})();
+</script>
+</body>
+</html>
