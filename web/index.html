@@ -313,19 +313,29 @@ const fmtAmt = (v, dec) => { const s = E.formatUnits(v, dec); return s.endsWith(
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
 // ------------------------------------------------------------ 读链
-const rp = new E.JsonRpcProvider(CFG.rpc[0], CFG.chainId, { staticNetwork: true });
-const logsP = new E.JsonRpcProvider(CFG.logsRpc, CFG.chainId, { staticNetwork: true });
+// 多个公共节点自动切换：有的节点在某些网络下连不上或很慢（11-27 用户那边 bsc-dataseed 卡住，整个广场列表空白）
+const RPCS = [...new Set([CFG.logsRpc, ...(CFG.rpc || [])].filter(Boolean))];
+const mkP = (u) => new E.JsonRpcProvider(u, CFG.chainId, { staticNetwork: true });
+const rp = RPCS.length > 1
+  ? new E.FallbackProvider(RPCS.map((u, i) => ({ provider: mkP(u), priority: i + 1, stallTimeout: 2500, weight: 1 })), CFG.chainId, { quorum: 1 })
+  : mkP(RPCS[0]);
+const logsP = mkP(CFG.logsRpc || RPCS[0]);
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("节点超时")), ms))]);
 const C = new E.Contract(CFG.contract, ABI, rp);
 const IFACE = C.interface;
 const tokenCache = { [ZERO]: { symbol: "BNB", decimals: 18 } };
+if (CFG.chainId === 56) {   // 常用代币直接写死，不用读链
+  tokenCache["0x55d398326f99059ff775485246999027b3197955"] = { symbol: "USDT", decimals: 18 };
+  tokenCache["0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"] = { symbol: "USDC", decimals: 18 };
+}
 async function tokenMeta(addr) {
   const k = addr.toLowerCase();
   if (k === ZERO) return tokenCache[ZERO];
   if (tokenCache[k]) return tokenCache[k];
   const t = new E.Contract(addr, ERC20, rp);
   let symbol = "?", decimals = 18;
-  try { symbol = String(await t.symbol()).replace(/[^0-9A-Za-z._-]/g, "").slice(0, 12) || "?"; } catch {}
-  decimals = Number(await t.decimals());
+  try { symbol = String(await withTimeout(t.symbol(), 8000)).replace(/[^0-9A-Za-z._-]/g, "").slice(0, 12) || "?"; } catch {}
+  decimals = Number(await withTimeout(t.decimals(), 8000));
   return (tokenCache[k] = { symbol, decimals });
 }
 
