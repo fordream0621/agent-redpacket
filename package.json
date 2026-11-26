@@ -1,0 +1,7 @@
+{
+  "name": "agent-redpacket",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": { "compile": "hardhat compile", "test": "hardhat test" }
+}

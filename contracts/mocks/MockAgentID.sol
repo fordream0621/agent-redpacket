@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.24;
+
+/// @notice TEST-ONLY mock of Agent ID. Anyone can mint. Never use on mainnet.
+contract MockAgentID {
+    mapping(address => uint256) private _balances;
+
+    function mint(address to) external {
+        _balances[to] += 1;
+    }
+
+    function burn(address from) external {
+        require(_balances[from] > 0, "none");
+        _balances[from] -= 1;
+    }
+
+    function balanceOf(address owner) external view returns (uint256) {
+        return _balances[owner];
+    }
+}
