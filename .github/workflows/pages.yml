@@ -56,6 +56,11 @@ jobs:
           [ -f .idx/index.json ] && cp .idx/index.json _site/ || true
           mkdir -p _site/skills && cp -r skills/agent-redpacket _site/skills/
           touch _site/.nojekyll
+          # 给 AI 读的说明（网页是 JS 画的，AI 抓不到内容）：规则 + 现在能抢的红包 + 算好的交易数据
+          if grep -q '"deployBlock": *[1-9]' web/config.js; then
+            python3 scripts/gen_ai_md.py web/config.js "$( [ -f .idx/index.json ] && echo .idx/index.json || echo - )" _site \
+              "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          fi
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
